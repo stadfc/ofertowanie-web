@@ -1,0 +1,80 @@
+{% extends "offers/base.html" %}
+{% block title %}Ustawienia{% endblock %}
+{% block body %}
+<div class="page settings-page">
+  <header class="topbar">
+    <strong>Ustawienia</strong>
+    <a class="btn ghost" href="{% url 'offer_list' %}">Archiwum</a>
+  </header>
+  {% if messages %}
+    {% for message in messages %}
+      <p class="status">{{ message }}</p>
+    {% endfor %}
+  {% endif %}
+  <form method="post" enctype="multipart/form-data" class="settings-form">
+    {% csrf_token %}
+    <section class="settings-card">
+      <h1>Dane handlowca</h1>
+      <p class="muted">Widoczne w ofercie i w eksporcie PDF.</p>
+      <div class="settings-grid">
+        <label>Stanowisko
+          <input name="stanowisko" value="{{ profile.stanowisko }}">
+        </label>
+        <label>Telefon
+          <input name="telefon" value="{{ profile.telefon }}">
+        </label>
+        <label>E-mail
+          <input name="email" type="email" value="{{ profile.email }}">
+        </label>
+        <label>Dodatkowy kontakt
+          <input name="kontakt" value="{{ profile.kontakt }}" placeholder="firma, region…">
+        </label>
+      </div>
+      <label>Zdjęcie do oferty (PDF)
+        <input name="zdjecie" type="file" accept="image/*">
+      </label>
+      {% if profile.zdjecie %}
+      <div class="portrait-row">
+        <img class="portrait" src="{{ profile.zdjecie.url }}" alt="">
+        <label class="check"><input type="checkbox" name="usun_zdjecie"> Usuń zdjęcie</label>
+      </div>
+      {% endif %}
+    </section>
+    <section class="settings-card">
+      <h1>Komunikaty oferty</h1>
+      <label>Komunikat otwierający
+        <textarea name="komunikat_otwarcia" rows="4">{{ profile.komunikat_otwarcia }}</textarea>
+      </label>
+      <label>Komunikat zamykający (PDF i Excel)
+        <textarea name="komunikat_zamkniecia" rows="4">{{ profile.komunikat_zamkniecia }}</textarea>
+      </label>
+    </section>
+    {% if is_admin %}
+    <section class="settings-card">
+      <h1>Kalkulacyjne kursy walut</h1>
+      <p class="muted">1 jednostka waluty kosztu zakupu = kurs w PLN. Używane do marży w ofercie.</p>
+      <table class="list">
+        <thead>
+          <tr><th>Para</th><th>Kurs (PLN)</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for rate in rates %}
+          <tr>
+            <td>{{ rate.waluta }}/PLN {% if rate.nazwa %}<span class="muted">{{ rate.nazwa }}</span>{% endif %}</td>
+            <td><input name="kurs_{{ rate.id }}" value="{{ rate.kurs_pln }}"></td>
+            <td><button class="btn ghost" type="submit" name="usun_kurs" value="{{ rate.id }}">Usuń</button></td>
+          </tr>
+          {% endfor %}
+          <tr>
+            <td><input name="nowa_waluta" placeholder="np. CHF" maxlength="8"></td>
+            <td><input name="nowy_kurs" placeholder="kurs do PLN"></td>
+            <td class="muted">nowa para</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    {% endif %}
+    <button class="btn primary" type="submit">Zapisz ustawienia</button>
+  </form>
+</div>
+{% endblock %}

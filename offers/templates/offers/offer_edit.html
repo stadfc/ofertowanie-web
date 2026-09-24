@@ -1,0 +1,132 @@
+{% extends "offers/base.html" %}
+{% load static %}
+{% block title %}Oferta{% endblock %}
+{% block body %}
+<div class="sheet" id="sheet"
+     data-save-url="{% url 'offer_save' offer.pk %}"
+     data-search-url="{% url 'product_search' %}"
+     data-clients-url="{% url 'client_search' %}"
+     data-print-url="{% url 'offer_print' offer.pk %}"
+     data-excel-url="{% url 'offer_excel' offer.pk %}"
+     data-csrf="{{ csrf_token }}">
+  <aside class="toolbar" id="toolbar">
+    <div class="toolbar-bar">
+      <a class="btn ghost" href="{% url 'offer_list' %}">Archiwum</a>
+      <button type="button" class="btn" id="btn-pdf">PDF</button>
+      <button type="button" class="btn" id="btn-xlsx">EXCEL</button>
+      <button type="button" class="btn menu-toggle" id="menu-toggle" aria-expanded="false">Więcej</button>
+    </div>
+    <div class="toolbar-actions" id="toolbar-actions">
+      <a class="btn ghost" href="{% url 'settings' %}">Ustawienia</a>
+      <button type="button" class="btn ghost" id="toggle-clients">Klienci</button>
+      <label class="check"><input type="checkbox" id="with-photos"{% if offer.with_photos %} checked{% endif %}> Oferta ze zdjęciami</label>
+      <label class="check"><input type="checkbox" id="show-codes"{% if offer.show_codes %} checked{% endif %}> Pokaż kody</label>
+      <button type="button" class="btn" id="btn-add">Dodaj wiersze do tabeli</button>
+      <button type="button" class="btn" id="btn-clear">Wyczyść tabelę</button>
+      <p class="status" id="status"></p>
+    </div>
+  </aside>
+
+  <main class="workbook">
+    <div class="logo-row">
+      <span>KJ Gastro — propozycja produktowa</span>
+      {% if profile.zdjecie %}
+      <img class="portrait-inline" src="{{ profile.zdjecie.url }}" alt="{{ handlowiec }}">
+      {% endif %}
+    </div>
+    <div class="meta">
+      <div>
+        <div class="label">Handlowiec</div>
+        <div>{{ handlowiec }}{% if profile.stanowisko %} · {{ profile.stanowisko }}{% endif %}</div>
+        <div class="muted">
+          {% if profile.telefon %}{{ profile.telefon }}{% endif %}
+          {% if profile.email %} · {{ profile.email }}{% endif %}
+        </div>
+      </div>
+      <div>
+        <div class="label">Nazwa oferty</div>
+        <input id="nazwa" value="{{ offer.nazwa }}">
+      </div>
+      <div>
+        <div class="label">Data</div>
+        <div>{{ offer.created_on|date:"d-m-Y" }}</div>
+      </div>
+      <div>
+        <div class="label">Ważna do</div>
+        <div>{{ valid_to|date:"d-m-Y" }}</div>
+      </div>
+    </div>
+
+    <details class="parties-wrap" id="parties-wrap">
+      <summary>Płatnik / odbiorca</summary>
+      <div class="parties">
+        <section class="party" data-role="platnik">
+          <strong>Płatnik</strong>
+          <input class="client-q" placeholder="szukaj nazwy, NIP">
+          <input type="hidden" class="client-id" id="platnik-id" value="{{ offer.platnik_id|default:'' }}">
+          <select class="client-list" size="3"></select>
+          <div class="party-fields">
+            <input id="platnik-nazwa" value="{{ offer.platnik_nazwa }}" placeholder="Nazwa">
+            <input id="platnik-adres" value="{{ offer.platnik_adres }}" placeholder="Adres">
+            <input id="platnik-nip" value="{{ offer.platnik_nip }}" placeholder="NIP">
+          </div>
+        </section>
+        <section class="party" data-role="odbiorca">
+          <strong>Odbiorca</strong>
+          <input class="client-q" placeholder="szukaj nazwy">
+          <input type="hidden" class="client-id" id="odbiorca-id" value="{{ offer.odbiorca_id|default:'' }}">
+          <select class="client-list" size="3"></select>
+          <div class="party-fields">
+            <input id="odbiorca-nazwa" value="{{ offer.odbiorca_nazwa }}" placeholder="Nazwa">
+            <input id="odbiorca-adres" value="{{ offer.odbiorca_adres }}" placeholder="Adres">
+            <button type="button" class="btn ghost" id="copy-platnik">Jak płatnik</button>
+          </div>
+        </section>
+      </div>
+    </details>
+
+    {% if profile.komunikat_otwarcia %}
+    <p class="lead msg">{{ profile.komunikat_otwarcia|linebreaksbr }}</p>
+    {% else %}
+    <p class="lead">Propozycja produktowa z dnia {{ offer.created_on|date:"d-m-Y" }} ważna do dnia {{ valid_to|date:"d-m-Y" }}</p>
+    {% endif %}
+
+    <table class="grid" id="grid">
+      <thead>
+        <tr>
+          <th class="col-photo">Zdjęcie</th>
+          <th class="col-opis">Opis</th>
+          <th>Cena katalogowa netto</th>
+          <th>Rabat %</th>
+          <th>Cena netto dla Ciebie</th>
+          <th>Ilość</th>
+          <th>Wartość netto</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </main>
+  <footer class="metrics" id="metrics">
+    <label>Transport netto
+      <input id="transport" value="{{ offer.koszt_transportu }}"> zł
+    </label>
+    <span>Wartość <strong id="m-wartosc">{{ metrics.wartosc }}</strong> zł</span>
+    <span>Koszt <strong id="m-koszt">{{ metrics.koszt }}</strong> zł</span>
+    <span>Zysk <strong id="m-zysk">{{ metrics.zysk }}</strong> zł</span>
+    <span>Marża oferty <strong id="m-marza">{{ metrics.marza }}</strong> %</span>
+  </footer>
+</div>
+
+<div class="modal" id="search-modal" hidden>
+  <div class="modal-box">
+    <p>Wpisz szukany produkt</p>
+    <input id="search-q" type="text" autofocus>
+    <button type="button" class="btn primary" id="btn-search">Szukaj</button>
+    <select id="search-list" size="12"></select>
+    <button type="button" class="btn primary" id="btn-insert">Dodaj produkt do aktywnej komórki</button>
+    <button type="button" class="btn ghost" id="btn-cancel">Anuluj</button>
+  </div>
+</div>
+{{ lines|json_script:"offer-lines" }}
+<script src="{% static 'offers/app.js' %}?v=6"></script>
+{% endblock %}

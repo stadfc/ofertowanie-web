@@ -1,0 +1,45 @@
+{% extends "offers/base.html" %}
+{% block title %}Archiwum ofert{% endblock %}
+{% block body %}
+<div class="page">
+  <header class="topbar">
+    <strong>Archiwum</strong>
+    <span>{{ user.get_full_name|default:user.username }}</span>
+    <form class="search-arch" method="get">
+      <input name="q" value="{{ q }}" placeholder="Szukaj nazwy lub odbiorcy">
+      <button class="btn" type="submit">Szukaj</button>
+    </form>
+    <a class="btn" href="{% url 'settings' %}">Ustawienia</a>
+    <a class="btn primary" href="{% url 'offer_create' %}">Nowa oferta</a>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+      <button class="btn ghost" type="submit">Wyloguj</button>
+    </form>
+  </header>
+  <div class="list-wrap">
+  <table class="list">
+    <thead>
+      <tr>
+        <th>Nazwa oferty</th>
+        <th>Odbiorca</th>
+        <th>Płatnik</th>
+        <th>Data</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for o in offers %}
+      <tr>
+        <td data-label="Nazwa">{{ o.nazwa }}</td>
+        <td data-label="Odbiorca">{{ o.odbiorca_nazwa }}</td>
+        <td data-label="Płatnik">{{ o.platnik_nazwa }}</td>
+        <td data-label="Data">{{ o.created_on|date:"d-m-Y" }}</td>
+        <td data-label=""><a class="btn primary" href="{% url 'offer_edit' o.pk %}">Otwórz</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5">Brak ofert w archiwum.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

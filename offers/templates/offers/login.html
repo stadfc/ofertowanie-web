@@ -1,0 +1,18 @@
+{% extends "offers/base.html" %}
+{% block title %}Logowanie{% endblock %}
+{% block body %}
+<div class="login-wrap">
+  <form method="post" class="login-box">
+    {% csrf_token %}
+    <h1>Ofertowanie</h1>
+    <p class="muted">Prototyp arkusza oferty</p>
+    {{ form.non_field_errors }}
+    <label>Login</label>
+    {{ form.username }}
+    <label>Hasło</label>
+    {{ form.password }}
+    <button type="submit" class="btn primary">Zaloguj</button>
+    <p class="hint">handlowiec / oferta123 · admin / oferta123</p>
+  </form>
+</div>
+{% endblock %}

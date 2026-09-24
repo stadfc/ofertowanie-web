@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <title>{{ offer.nazwa }}</title>
+  <style>
+    html { color-scheme: light; }
+    body { font-family: Calibri, Arial, sans-serif; font-size: 12px; background: #fff; color: #111; }
+    h1 { font-size: 18px; margin-bottom: 4px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #bbb; padding: 6px; vertical-align: middle; }
+    th { background: #d9d9d9; }
+    tfoot td { font-weight: 700; background: #f3f3f3; }
+    img.photo { width: 80px; height: 56px; object-fit: contain; }
+    img.portrait { width: 92px; height: 92px; object-fit: cover; border: 1px solid #ccc; }
+    .head { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: start; }
+    .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+    .msg { white-space: pre-wrap; margin: 12px 0; }
+    .contact { font-size: 12px; }
+    @media print { .noprint { display: none; } }
+  </style>
+</head>
+<body>
+  <p class="noprint"><button onclick="window.print()">Drukuj / PDF</button></p>
+  <div class="head">
+    <div>
+      <h1>{{ offer.nazwa }}</h1>
+      <p>{{ handlowiec }}{% if profile.stanowisko %} · {{ profile.stanowisko }}{% endif %} · {{ offer.created_on|date:"d-m-Y" }} — {{ valid_to|date:"d-m-Y" }}</p>
+      {% if profile.telefon or profile.email or profile.kontakt %}
+      <p class="contact">
+        {% if profile.telefon %}tel. {{ profile.telefon }}{% endif %}
+        {% if profile.email %} · {{ profile.email }}{% endif %}
+        {% if profile.kontakt %}<br>{{ profile.kontakt }}{% endif %}
+      </p>
+      {% endif %}
+    </div>
+    {% if profile.zdjecie %}
+    <img class="portrait" src="{{ profile.zdjecie.url }}" alt="{{ handlowiec }}">
+    {% endif %}
+  </div>
+  {% if profile.komunikat_otwarcia %}
+  <p class="msg">{{ profile.komunikat_otwarcia }}</p>
+  {% endif %}
+  <div class="parties">
+    <div>
+      <strong>Płatnik</strong><br>
+      {{ offer.platnik_nazwa }}<br>
+      {{ offer.platnik_adres }}<br>
+      {% if offer.platnik_nip %}NIP {{ offer.platnik_nip }}{% endif %}
+    </div>
+    <div>
+      <strong>Odbiorca</strong><br>
+      {{ offer.odbiorca_nazwa }}<br>
+      {{ offer.odbiorca_adres }}
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        {% if offer.with_photos %}<th>Zdjęcie</th>{% endif %}
+        <th>Opis</th><th>Cena kat.</th><th>Rabat %</th><th>Cena netto</th><th>Ilość</th><th>Wartość</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for line in lines %}
+      <tr>
+        {% if offer.with_photos %}
+        <td>{% if line.zdjecie %}<img class="photo" src="{{ line.zdjecie }}" alt="">{% endif %}</td>
+        {% endif %}
+        <td>{{ line.opis }}</td>
+        <td>{{ line.cena }}</td>
+        <td>{{ line.rabat }}</td>
+        <td>{{ line.netto }}</td>
+        <td>{{ line.ilosc }}</td>
+        <td>{{ line.wartosc }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      {% if offer.koszt_transportu %}
+      <tr>
+        {% if offer.with_photos %}<td></td>{% endif %}
+        <td colspan="5">Transport netto</td>
+        <td>{{ offer.koszt_transportu }}</td>
+      </tr>
+      {% endif %}
+      <tr>
+        {% if offer.with_photos %}<td></td>{% endif %}
+        <td colspan="5">Razem netto</td>
+        <td>{{ metrics.wartosc }}</td>
+      </tr>
+    </tfoot>
+  </table>
+  {% if profile.komunikat_zamkniecia %}
+  <p class="msg">{{ profile.komunikat_zamkniecia }}</p>
+  {% endif %}
+  <p class="contact">
+    {{ handlowiec }}{% if profile.stanowisko %}, {{ profile.stanowisko }}{% endif %}
+    {% if profile.telefon %} · {{ profile.telefon }}{% endif %}
+    {% if profile.email %} · {{ profile.email }}{% endif %}
+  </p>
+</body>
+</html>
