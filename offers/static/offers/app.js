@@ -288,5 +288,85 @@
     window.location = root.dataset.excelUrl;
   });
 
+  const pasteModal = document.getElementById("paste-modal");
+  const pasteResultModal = document.getElementById("paste-result-modal");
+  const pasteText = document.getElementById("paste-text");
+  const pasteDroppedList = document.getElementById("paste-dropped-list");
+
+  function openPasteModal() {
+    pasteText.value = "";
+    document.getElementById("paste-has-header").checked = false;
+    const defaultFmt = pasteModal.querySelector('input[name="paste-format"][value="kod_ilosc"]');
+    if (defaultFmt) defaultFmt.checked = true;
+    pasteModal.hidden = false;
+    pasteText.focus();
+  }
+
+  function showPasteResult(data) {
+    const title = document.getElementById("paste-result-title");
+    const message = document.getElementById("paste-result-message");
+    title.textContent = data.smooth ? "Wklejanie zakończone" : "Wklejanie z pominięciami";
+    message.textContent = data.message || "";
+    pasteDroppedList.innerHTML = "";
+    if (data.dropped && data.dropped.length) {
+      pasteDroppedList.hidden = false;
+      data.dropped.forEach((row) => {
+        const li = document.createElement("li");
+        const kod = row.kod ? ` (${row.kod})` : "";
+        li.textContent = `Wiersz ${row.row}${kod}: ${row.reason}`;
+        pasteDroppedList.appendChild(li);
+      });
+    } else {
+      pasteDroppedList.hidden = true;
+    }
+    pasteResultModal.hidden = false;
+  }
+
+  async function applyPaste() {
+    const text = pasteText.value;
+    if (!text.trim()) {
+      window.alert("Schowek / pole danych jest puste.");
+      return;
+    }
+    const formatEl = pasteModal.querySelector('input[name="paste-format"]:checked');
+    status.textContent = "Wklejanie…";
+    const res = await fetch(root.dataset.pasteUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": root.dataset.csrf,
+      },
+      body: JSON.stringify({
+        text,
+        has_header: document.getElementById("paste-has-header").checked,
+        format: formatEl ? formatEl.value : "kod_ilosc",
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      status.textContent = "Błąd wklejania";
+      window.alert(data.error || "Nie udało się wkleić zamówienia.");
+      return;
+    }
+    pasteModal.hidden = true;
+    lines = data.lines;
+    paintMetrics(data.metrics);
+    render();
+    status.textContent = data.smooth ? "Wklejono" : "Wklejono z pominięciami";
+    showPasteResult(data);
+  }
+
+  document.getElementById("btn-paste").addEventListener("click", openPasteModal);
+  document.getElementById("btn-paste-cancel").addEventListener("click", () => {
+    pasteModal.hidden = true;
+  });
+  document.getElementById("btn-paste-apply").addEventListener("click", applyPaste);
+  document.getElementById("btn-paste-result-ok").addEventListener("click", () => {
+    pasteResultModal.hidden = true;
+  });
+  pasteText.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") pasteModal.hidden = true;
+  });
+
   render();
 })();
