@@ -1,0 +1,91 @@
+{% extends "offers/base.html" %}
+{% load static %}
+{% block title %}Status zamówień{% endblock %}
+{% block body %}
+<div class="page order-status-page">
+  <header class="topbar topbar-with-menu">
+    <div class="toolbar-top page-menu">
+      <button type="button" class="hamburger" id="menu-toggle" aria-expanded="false" aria-controls="app-menu" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      {% include "offers/includes/app_menu.html" with active="orders" %}
+    </div>
+    <strong>Status zamówień</strong>
+    <span>{{ handlowiec }} · znacznik {{ znacznik }}</span>
+    <form class="search-arch" method="get">
+      <label class="year-pick">Rok
+        <select name="rok" onchange="this.form.submit()">
+          {% for y in years %}
+          <option value="{{ y }}"{% if y == year %} selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </form>
+    <a class="btn ghost" href="{% url 'home' %}">Panel</a>
+  </header>
+
+  {% if error %}
+  <p class="status error">Nie udało się pobrać danych z Symfonii: {{ error }}</p>
+  {% else %}
+  <p class="order-total-open">
+    Wartość niedostarczona łącznie:
+    <strong>{{ total_wart_netto_open }}</strong> zł
+  </p>
+  <p class="muted">
+    Niezrealizowane pozycje ZMO {{ year }} · zamówień: <strong>{{ order_count }}</strong> · pozycji: <strong>{{ line_count }}</strong>
+  </p>
+  {% endif %}
+
+  {% for order in orders %}
+  <section class="order-card">
+    <header class="order-card-head">
+      <div>
+        <strong>{{ order.kod }}</strong>
+        <span class="muted">{% if order.data %}{{ order.data|date:"d-m-Y" }}{% endif %}</span>
+      </div>
+      <div class="order-parties">
+        <span>Płatnik: {{ order.platnik }}</span>
+        <span>Odbiorca: {{ order.odbiorca }}</span>
+      </div>
+      <div class="order-sums">
+        Do realizacji: <strong>{{ order.do_realizacji_sum }}</strong>
+        · netto otwarte ≈ <strong>{{ order.wart_netto_open }}</strong> zł
+      </div>
+    </header>
+    <div class="list-wrap">
+      <table class="list order-lines">
+        <thead>
+          <tr>
+            <th>Kod</th>
+            <th>Produkt</th>
+            <th>Ilość</th>
+            <th>Zrealizowano</th>
+            <th>Do realizacji</th>
+            <th>Cena</th>
+            <th>Wartość netto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in order.lines %}
+          <tr>
+            <td data-label="Kod">{{ line.kod_produktu }}</td>
+            <td data-label="Produkt">{{ line.nazwa }}</td>
+            <td data-label="Ilość">{{ line.ilosc }}</td>
+            <td data-label="Zrealizowano">{{ line.zrealizowano }}</td>
+            <td data-label="Do realizacji"><strong>{{ line.do_realizacji }}</strong></td>
+            <td data-label="Cena">{{ line.cena }}</td>
+            <td data-label="Wartość">{{ line.wart_netto }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% empty %}
+  {% if not error %}
+  <p>Brak otwartych pozycji do realizacji dla znacznika {{ znacznik }} w roku {{ year }}.</p>
+  {% endif %}
+  {% endfor %}
+</div>
+<script src="{% static 'offers/menu.js' %}?v=1"></script>
+{% endblock %}
