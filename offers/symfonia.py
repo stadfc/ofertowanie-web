@@ -122,6 +122,30 @@ def _as_date(value: Any) -> date | None:
     return None
 
 
+def _is_tra_transport(kod_produktu: str, nazwa: str) -> bool:
+    """True for the standalone TRA transport service line."""
+    kod = (kod_produktu or "").strip().upper()
+    name = (nazwa or "").strip().casefold()
+    if kod == "TRA":
+        return True
+    return name == "usługa transportowa" or name == "usluga transportowa"
+
+
+def _drop_tra_only_orders(lines: list[OrderLineStatus]) -> list[OrderLineStatus]:
+    """Hide orders whose only remaining open line is TRA transport."""
+    by_order: dict[str, list[OrderLineStatus]] = {}
+    for line in lines:
+        by_order.setdefault(line.kod_zamowienia, []).append(line)
+    keep: list[OrderLineStatus] = []
+    for order_lines in by_order.values():
+        if len(order_lines) == 1 and _is_tra_transport(
+            order_lines[0].kod_produktu, order_lines[0].nazwa
+        ):
+            continue
+        keep.extend(order_lines)
+    return keep
+
+
 def fetch_open_order_lines(znacznik: int, year: int | None = None) -> list[OrderLineStatus]:
     """Open foreign-order positions for a salesperson marker (e.g. D = 68)."""
     if year is None:
@@ -162,4 +186,4 @@ def fetch_open_order_lines(znacznik: int, year: int | None = None) -> list[Order
                 do_realizacji=do_real,
             )
         )
-    return out
+    return _drop_tra_only_orders(out)
