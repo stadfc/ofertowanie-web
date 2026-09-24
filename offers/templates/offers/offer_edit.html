@@ -8,12 +8,14 @@
      data-clients-url="{% url 'client_search' %}"
      data-print-url="{% url 'offer_print' offer.pk %}"
      data-excel-url="{% url 'offer_excel' offer.pk %}"
+     data-paste-url="{% url 'offer_paste' offer.pk %}"
      data-csrf="{{ csrf_token }}">
   <aside class="toolbar" id="toolbar">
     <div class="toolbar-bar">
       <a class="btn ghost" href="{% url 'offer_list' %}">Archiwum</a>
       <button type="button" class="btn" id="btn-pdf">PDF</button>
       <button type="button" class="btn" id="btn-xlsx">EXCEL</button>
+      <button type="button" class="btn" id="btn-paste">Wklej zamówienie</button>
       <button type="button" class="btn menu-toggle" id="menu-toggle" aria-expanded="false">Więcej</button>
     </div>
     <div class="toolbar-actions" id="toolbar-actions">
@@ -127,6 +129,36 @@
     <button type="button" class="btn ghost" id="btn-cancel">Anuluj</button>
   </div>
 </div>
+
+<div class="modal" id="paste-modal" hidden>
+  <div class="modal-box paste-box">
+    <h2 class="modal-title">Wklej zamówienie ze schowka</h2>
+    <p class="hint">Skopiuj tabelę z Excela (Ctrl+C) i wklej poniżej (Ctrl+V).</p>
+    <label class="check"><input type="checkbox" id="paste-has-header"> Pierwszy wiersz to nagłówek</label>
+    <fieldset class="paste-formats">
+      <legend>Format kolumn</legend>
+      <label class="check"><input type="radio" name="paste-format" value="kod_ilosc" checked> Kod — ilość</label>
+      <label class="check"><input type="radio" name="paste-format" value="kod_ilosc_cena"> Kod — ilość — cena</label>
+      <label class="check"><input type="radio" name="paste-format" value="kod_cena_ilosc"> Kod — cena — ilość</label>
+    </fieldset>
+    <label class="paste-label" for="paste-text">Dane</label>
+    <textarea id="paste-text" rows="10" placeholder="Wklej tutaj tabelę z Excela…"></textarea>
+    <div class="modal-actions">
+      <button type="button" class="btn primary" id="btn-paste-apply">Wklej do oferty</button>
+      <button type="button" class="btn ghost" id="btn-paste-cancel">Anuluj</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="paste-result-modal" hidden>
+  <div class="modal-box">
+    <h2 class="modal-title" id="paste-result-title">Wynik wklejania</h2>
+    <p id="paste-result-message"></p>
+    <ul class="paste-dropped" id="paste-dropped-list" hidden></ul>
+    <button type="button" class="btn primary" id="btn-paste-result-ok">OK</button>
+  </div>
+</div>
+
 {{ lines|json_script:"offer-lines" }}
-<script src="{% static 'offers/app.js' %}?v=6"></script>
+<script src="{% static 'offers/app.js' %}?v=8"></script>
 {% endblock %}

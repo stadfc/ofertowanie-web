@@ -11,6 +11,7 @@ urlpatterns = [
     path("oferta/nowa/", views.offer_create, name="offer_create"),
     path("oferta/<int:pk>/", views.offer_edit, name="offer_edit"),
     path("oferta/<int:pk>/zapis/", views.offer_save, name="offer_save"),
+    path("oferta/<int:pk>/wklej/", views.offer_paste, name="offer_paste"),
     path("oferta/<int:pk>/pdf/", views.offer_print, name="offer_print"),
     path("oferta/<int:pk>/excel/", views.offer_excel, name="offer_excel"),
     path("ustawienia/", views.settings_view, name="settings"),

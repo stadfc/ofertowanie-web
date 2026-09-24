@@ -175,6 +175,39 @@ body {
   gap: 8px;
   border: 1px solid #777;
 }
+.modal-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+.paste-box textarea {
+  width: 100%;
+  min-height: 160px;
+  font: inherit;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  resize: vertical;
+}
+.paste-formats {
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.paste-formats legend { padding: 0 4px; font-size: 13px; }
+.paste-label { font-size: 13px; color: #444; }
+.modal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.paste-dropped {
+  margin: 0;
+  padding-left: 18px;
+  max-height: 200px;
+  overflow: auto;
+  font-size: 13px;
+  color: #5a2a2a;
+}
 .menu-toggle { display: none; }
 .toolbar-bar { display: contents; }
 .toolbar-actions { display: contents; }

@@ -263,6 +263,159 @@ def product_search(request):
     return JsonResponse({"results": [p.combi for p in qs]})
 
 
+PASTE_FORMATS = {
+    "kod_ilosc": ("kod", "ilosc"),
+    "kod_ilosc_cena": ("kod", "ilosc", "cena"),
+    "kod_cena_ilosc": ("kod", "cena", "ilosc"),
+}
+
+
+def _parse_paste_number(raw: str):
+    text = (raw or "").strip().replace("\u00a0", " ").replace(" ", "")
+    if not text:
+        return None
+    text = text.replace(",", ".")
+    try:
+        return Decimal(text)
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def _split_clipboard_rows(text: str):
+    normalized = (text or "").replace("\r\n", "\n").replace("\r", "\n")
+    rows = []
+    for line in normalized.split("\n"):
+        if not line.strip():
+            continue
+        if "\t" in line:
+            cells = line.split("\t")
+        elif ";" in line:
+            cells = line.split(";")
+        else:
+            cells = line.split(",")
+        rows.append([c.strip() for c in cells])
+    return rows
+
+
+@login_required
+@require_POST
+def offer_paste(request, pk):
+    """Apply Excel clipboard rows (TSV) into the offer. Unknown codes are skipped."""
+    offer = get_object_or_404(Offer, pk=pk, created_by=request.user)
+    payload = json.loads(request.body.decode("utf-8"))
+    text = payload.get("text") or ""
+    has_header = bool(payload.get("has_header"))
+    fmt = (payload.get("format") or "kod_ilosc").strip()
+    columns = PASTE_FORMATS.get(fmt)
+    if not columns:
+        return JsonResponse({"ok": False, "error": "Nieznany format wklejania"}, status=400)
+
+    raw_rows = _split_clipboard_rows(text)
+    if has_header and raw_rows:
+        raw_rows = raw_rows[1:]
+
+    expected = len(columns)
+    accepted = []
+    dropped = []
+    for idx, cells in enumerate(raw_rows, start=1 + (1 if has_header else 0)):
+        # Ignore trailing empty cells from Excel
+        while cells and cells[-1] == "":
+            cells.pop()
+        if len(cells) < expected:
+            dropped.append(
+                {
+                    "row": idx,
+                    "kod": cells[0] if cells else "",
+                    "reason": f"Za mało kolumn (oczekiwano {expected}, jest {len(cells)})",
+                }
+            )
+            continue
+        mapped = {name: cells[i] for i, name in enumerate(columns)}
+        kod = (mapped.get("kod") or "").strip()
+        if not kod:
+            dropped.append({"row": idx, "kod": "", "reason": "Brak kodu produktu"})
+            continue
+        product = Product.objects.filter(kod__iexact=kod).first()
+        if not product:
+            dropped.append({"row": idx, "kod": kod, "reason": "Nie znaleziono produktu w katalogu"})
+            continue
+        ilosc = _parse_paste_number(mapped.get("ilosc", ""))
+        if ilosc is None or ilosc <= 0:
+            dropped.append({"row": idx, "kod": kod, "reason": "Nieprawidłowa ilość"})
+            continue
+        rabat = Decimal("0")
+        if "cena" in mapped:
+            cena = _parse_paste_number(mapped.get("cena", ""))
+            if cena is None or cena < 0:
+                dropped.append({"row": idx, "kod": kod, "reason": "Nieprawidłowa cena"})
+                continue
+            katalog = Decimal(product.cena_det or 0)
+            if katalog > 0:
+                rabat = Decimal("1") - (cena / katalog)
+                rabat = min(max(rabat, Decimal("0")), Decimal("0.99"))
+        accepted.append(
+            {
+                "kod": product.kod,
+                "combi": product.combi,
+                "ilosc": str(ilosc.quantize(Decimal("0.01"))),
+                "rabat": str((rabat * Decimal("100")).quantize(Decimal("0.01"))),
+            }
+        )
+
+    if not accepted and not dropped:
+        return JsonResponse(
+            {
+                "ok": False,
+                "error": "Schowek jest pusty lub nie zawiera wierszy danych",
+                "accepted": [],
+                "dropped": [],
+            },
+            status=400,
+        )
+
+    # Fill existing empty lines first, then append.
+    empty_lines = list(offer.lines.filter(combi="").order_by("position", "id"))
+    used = 0
+    for item in accepted:
+        if used < len(empty_lines):
+            line = empty_lines[used]
+            used += 1
+        else:
+            line = OfferLine.objects.create(
+                offer=offer,
+                position=offer.lines.count() + 1,
+            )
+        line.combi = item["combi"]
+        line.ilosc = _dec(item["ilosc"])
+        line.rabat = (_dec(item["rabat"]) / Decimal("100")).quantize(Decimal("0.0001"))
+        line.save()
+
+    rates = _fx_map()
+    lines = [_line_payload(line, offer.show_codes, rates) for line in offer.lines.all()]
+    smooth = len(dropped) == 0 and len(accepted) > 0
+    return JsonResponse(
+        {
+            "ok": True,
+            "smooth": smooth,
+            "accepted_count": len(accepted),
+            "dropped_count": len(dropped),
+            "dropped": dropped,
+            "lines": lines,
+            "metrics": _offer_metrics(lines, offer.koszt_transportu),
+            "message": (
+                f"Wklejono {len(accepted)} pozycji bez problemów."
+                if smooth
+                else (
+                    f"Wklejono {len(accepted)} pozycji. "
+                    f"Pominięto {len(dropped)} wierszy z powodu błędów."
+                    if accepted
+                    else f"Nie wklejono żadnej pozycji. Pominięto {len(dropped)} wierszy."
+                )
+            ),
+        }
+    )
+
+
 @login_required
 @require_GET
 def client_search(request):
