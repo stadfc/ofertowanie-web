@@ -15,6 +15,7 @@
       <a class="btn ghost" href="{% url 'offer_list' %}">Archiwum</a>
       <button type="button" class="btn" id="btn-pdf">PDF</button>
       <button type="button" class="btn" id="btn-xlsx">EXCEL</button>
+      <button type="button" class="btn" id="btn-paste">Wklej zamówienie</button>
       <button type="button" class="btn menu-toggle" id="menu-toggle" aria-expanded="false">Więcej</button>
     </div>
     <div class="toolbar-actions" id="toolbar-actions">
@@ -22,7 +23,6 @@
       <button type="button" class="btn ghost" id="toggle-clients">Klienci</button>
       <label class="check"><input type="checkbox" id="with-photos"{% if offer.with_photos %} checked{% endif %}> Oferta ze zdjęciami</label>
       <label class="check"><input type="checkbox" id="show-codes"{% if offer.show_codes %} checked{% endif %}> Pokaż kody</label>
-      <button type="button" class="btn" id="btn-paste">Wklej zamówienie</button>
       <button type="button" class="btn" id="btn-add">Dodaj wiersze do tabeli</button>
       <button type="button" class="btn" id="btn-clear">Wyczyść tabelę</button>
       <p class="status" id="status"></p>
@@ -160,5 +160,5 @@
 </div>
 
 {{ lines|json_script:"offer-lines" }}
-<script src="{% static 'offers/app.js' %}?v=7"></script>
+<script src="{% static 'offers/app.js' %}?v=8"></script>
 {% endblock %}
