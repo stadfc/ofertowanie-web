@@ -102,6 +102,21 @@ class OrderLineStatus:
     zrealizowano: Decimal
     do_realizacji: Decimal
 
+    @property
+    def wart_netto_open(self) -> Decimal:
+        """Net value still to deliver (pro-rata of line wart_netto)."""
+        if not self.ilosc:
+            return Decimal("0.00")
+        return ((self.do_realizacji / self.ilosc) * self.wart_netto).quantize(Decimal("0.01"))
+
+
+def total_open_net(lines: list[OrderLineStatus]) -> Decimal:
+    """Sum of undelivered net value across open lines."""
+    total = Decimal("0.00")
+    for line in lines:
+        total += line.wart_netto_open
+    return total
+
 
 def _dec(value: Any) -> Decimal:
     if value is None or value == "":
