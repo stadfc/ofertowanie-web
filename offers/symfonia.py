@@ -45,8 +45,8 @@ def connect():
     return pyodbc.connect(build_odbc_connection_string(), timeout=30)
 
 
-# Same logic as Do_realizacji/main.py: filter settlement rows in WHERE, then
-# drop fully closed lines in Python (Do_realizacji != 0).
+# Same base query as Do_realizacji/main.py, then keep only positive open qty
+# (Do_realizacji > 0). Zero = fully shipped; negative = over-settled vs order.
 ORDERS_SQL = """
 SELECT
     dane_platnika.Shortcut AS platnik,
@@ -83,6 +83,7 @@ GROUP BY
     HM.ZP.ilosc,
     HM.ZP.cena,
     HM.ZP.wartNetto
+HAVING HM.ZP.ilosc - COALESCE(SUM(sett.Quantity), 0) > 0
 ORDER BY HM.ZO.kod, HM.ZP.kod
 """
 
@@ -142,9 +143,9 @@ def fetch_open_order_lines(znacznik: int, year: int | None = None) -> list[Order
 
     out: list[OrderLineStatus] = []
     for row in rows:
-        # Match pandas: pddata.loc[pddata["Do_realizacji"] != 0]
+        # Keep only still-open qty (exclude fully shipped and over-settled).
         do_real = _dec(row.do_realizacji)
-        if do_real == 0:
+        if do_real <= 0:
             continue
         out.append(
             OrderLineStatus(
